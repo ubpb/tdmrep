@@ -4,7 +4,7 @@ Writes a text and data mining rights reservation into PDF files, from anywhere o
 
 ```
 $ tdmrep -p https://example.org/policies/tdm.json -i dissertation.pdf
-{"tool":"tdmrep","version":"1.0.0","status":"written","sha256_before":"f5b51ea5…","sha256_after":"ec961f7f…", …}
+{"tool":"tdmrep","version":"1.0.1","status":"written","sha256_before":"f5b51ea5…","sha256_after":"ec961f7f…", …}
 ```
 
 The reservation goes into the document's XMP metadata, so it stays with the file even after it has been downloaded and passed on elsewhere. Pages, text, fonts and images remain unchanged.
@@ -107,7 +107,7 @@ Encrypted, password-protected, signed and certified files are skipped: any chang
 
 ## Log and exit codes
 
-Each file produces one JSON line with a timestamp, checksums before and after processing, the detected PDF/A level and the entries found. It serves as evidence of when the reservation was present in machine-readable form — in a dispute, the rights holder has to prove this.
+Each file produces one JSON line with a timestamp, checksums before and after processing, the detected PDF/A level and the entries found. For `written` and `dry-run` it shows reservation and policy before and after (`reservation_before`/`reservation_after`, `policy_before`/`policy_after`); for `conflict` it shows the requested policy as `policy_requested`. It serves as evidence of when the reservation was present in machine-readable form — in a dispute, the rights holder has to prove this.
 
 | Code | Meaning |
 |---|---|
@@ -152,4 +152,4 @@ tdmrep/
 └── README.md
 ```
 
-Version 1.0.0
+Version 1.0.1

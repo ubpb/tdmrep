@@ -11,7 +11,7 @@ from pathlib import Path
 import pikepdf
 from lxml import etree
 
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 
 TDM_SLASH = 'http://www.w3.org/ns/tdmrep/'      # Schreibweise laut PDF-Abschnitt der Spec
 TDM_HASH  = 'http://www.w3.org/ns/tdmrep#'      # Schreibweise laut EPUB-Abschnitt der Spec
@@ -231,7 +231,7 @@ def process(src, dst, a):
             if st['policy'] and desired_pol and st['policy'] != desired_pol:
                 conflicts.append(f"vorhandene Policy {st['policy']} weicht ab")
         if conflicts and a.on_conflict == 'report':
-            rec.update(status='conflict', conflicts=conflicts,
+            rec.update(status='conflict', conflicts=conflicts, policy_requested=desired_pol,
                        hinweis='redaktionell klaeren; mit --on-conflict overwrite '
                                'bewusst ueberschreiben')
             return rec, 3
@@ -255,7 +255,8 @@ def process(src, dst, a):
 
         if a.dry_run:
             rec.update(status='dry-run', reservation_before=st['reservation'],
-                       reservation_after=a.reservation)
+                       reservation_after=a.reservation, policy_before=st['policy'],
+                       policy_after=pol_after)
             return rec, 0
 
         pdf.Root.Metadata = pdf.make_stream(serialize(tree))
@@ -266,8 +267,8 @@ def process(src, dst, a):
     with pikepdf.open(dst) as chk:
         rec['metadata_filter'] = str(chk.Root.Metadata.get('/Filter'))
     rec.update(status='written', dst=str(dst), reservation_before=st['reservation'],
-               reservation_after=a.reservation, policy=pol_after,
-               sha256_after=sha256(dst))
+               reservation_after=a.reservation, policy_before=st['policy'],
+               policy_after=pol_after, sha256_after=sha256(dst))
     if rec.get('pdfa'):
         rec['hinweis'] = (f"Quelle ist PDF/A-{rec['pdfa']} - Ergebnis mit veraPDF "
                           f"gegen dieselbe Stufe pruefen")
