@@ -7,7 +7,7 @@ $ tdmrep -p https://digital.ub.uni-paderborn.de/policies/tdm.json -i dissertatio
 {"tool":"tdmrep","version":"2.1.0","status":"written","sha256_before":"f5b51ea5…","sha256_after":"ec961f7f…", …}
 ```
 
-Der Vorbehalt landet in den XMP-Metadaten des Dokuments und begleitet die Datei damit auch dann, wenn sie heruntergeladen und andernorts weitergegeben wird. Seiten, Text, Schriften und Abbildungen bleiben unverändert; geprüft an einer 364-seitigen Dissertation ist der extrahierte Volltext danach Byte für Byte derselbe.
+Der Vorbehalt landet in den XMP-Metadaten des Dokuments und begleitet die Datei damit auch dann, wenn sie heruntergeladen und andernorts weitergegeben wird. Seiten, Text, Schriften und Abbildungen bleiben unverändert.
 
 `examples/beispiel.pdf` ist eine kleine Datei zum Ausprobieren.
 
