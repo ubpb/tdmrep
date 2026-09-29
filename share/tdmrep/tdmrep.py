@@ -11,10 +11,7 @@ from pathlib import Path
 import pikepdf
 from lxml import etree
 
-VERSION = '2.1.0'
-
-# Vorgabe fuer --policy. Reihenfolge: -p vor TDMREP_POLICY vor dieser Konstante.
-DEFAULT_POLICY = 'https://data.ub.uni-paderborn.de/policies/digital.ub/tdm.json'
+VERSION = '1.0.0'
 
 TDM_SLASH = 'http://www.w3.org/ns/tdmrep/'      # Schreibweise laut PDF-Abschnitt der Spec
 TDM_HASH  = 'http://www.w3.org/ns/tdmrep#'      # Schreibweise laut EPUB-Abschnitt der Spec
@@ -250,7 +247,9 @@ def process(src, dst, a):
                 rec.update(status='unchanged', reservation=st['reservation'])
                 return rec, 0
 
-        write_tdm(rdf, a.reservation, desired_pol)
+        # Ohne -p bleibt eine vorhandene Policy erhalten.
+        pol_after = desired_pol or st['policy']
+        write_tdm(rdf, a.reservation, pol_after)
         rec['pdfa_extension'] = ('uebersprungen' if a.no_pdfa_ext
                                  else ensure_extension_schema(rdf))
 
@@ -267,7 +266,7 @@ def process(src, dst, a):
     with pikepdf.open(dst) as chk:
         rec['metadata_filter'] = str(chk.Root.Metadata.get('/Filter'))
     rec.update(status='written', dst=str(dst), reservation_before=st['reservation'],
-               reservation_after=a.reservation, policy=desired_pol,
+               reservation_after=a.reservation, policy=pol_after,
                sha256_after=sha256(dst))
     if rec.get('pdfa'):
         rec['hinweis'] = (f"Quelle ist PDF/A-{rec['pdfa']} - Ergebnis mit veraPDF "
@@ -282,8 +281,8 @@ HELP = f"""tdmrep - TDM-Rechtevorbehalt in PDF-Dateien schreiben
   -o, --output PFAD        Ziel-PDF oder Zielverzeichnis
   -i, --in-place           Quelldatei ueberschreiben
   -r, --reservation 0|1    zu setzender Wert (Vorgabe 1)
-  -p, --policy URL         URL der Rechte-Policy; -p "" laesst sie weg
-                           Vorgabe: {DEFAULT_POLICY}
+  -p, --policy URL         URL der Rechte-Policy (optional); ohne -p bleibt
+                           eine vorhandene Policy erhalten
       --on-conflict WIE    report (Vorgabe) oder overwrite
       --no-pdfa-ext        ohne PDF/A Extension Schema Description
   -n, --dry-run            nur pruefen, nichts schreiben
@@ -307,8 +306,7 @@ def main():
     ap.add_argument('-o', '--out', '--output', dest='dst', metavar='PFAD')
     ap.add_argument('-i', '--in-place', action='store_true')
     ap.add_argument('-r', '--reservation', default='1', choices=['0', '1'])
-    ap.add_argument('-p', '--policy',
-                    default=os.environ.get('TDMREP_POLICY', DEFAULT_POLICY))
+    ap.add_argument('-p', '--policy', default=os.environ.get('TDMREP_POLICY'))
     ap.add_argument('--on-conflict', default='report', choices=['report', 'overwrite'])
     ap.add_argument('--no-pdfa-ext', action='store_true')
     ap.add_argument('-n', '--dry-run', action='store_true')
@@ -318,7 +316,7 @@ def main():
     ap.add_argument('-v', '--version', action='version', version=f'tdmrep {VERSION}')
     a = ap.parse_args()
 
-    if a.policy == '':          # -p "" laesst tdm:policy bewusst weg
+    if a.policy == '':          # -p "" uebergeht TDMREP_POLICY
         a.policy = None
 
     if a.help:

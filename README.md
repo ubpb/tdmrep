@@ -4,7 +4,7 @@ Writes a text and data mining rights reservation into PDF files, from anywhere o
 
 ```
 $ tdmrep -p https://example.org/policies/tdm.json -i dissertation.pdf
-{"tool":"tdmrep","version":"2.1.0","status":"written","sha256_before":"f5b51ea5…","sha256_after":"ec961f7f…", …}
+{"tool":"tdmrep","version":"1.0.0","status":"written","sha256_before":"f5b51ea5…","sha256_after":"ec961f7f…", …}
 ```
 
 The reservation goes into the document's XMP metadata, so it stays with the file even after it has been downloaded and passed on elsewhere. Pages, text, fonts and images remain unchanged.
@@ -14,7 +14,7 @@ The reservation goes into the document's XMP metadata, so it stays with the file
 ## How it works
 
 1. The file is opened with **pikepdf** (based on qpdf) and its XMP packet is read.
-2. `tdm:reservation` and `tdm:policy` are **added** in the namespace `http://www.w3.org/ns/tdmrep/` — existing entries such as `dc:creator`, `xmp:CreateDate` or the PDF/A identification are preserved.
+2. `tdm:reservation` and, if a policy URL is given, `tdm:policy` are **added** in the namespace `http://www.w3.org/ns/tdmrep/` — existing entries such as `dc:creator`, `xmp:CreateDate` or the PDF/A identification are preserved.
 3. Because `tdm` is not a standard XMP schema, a **PDF/A Extension Schema Description** is added as well. Without it, a PDF/A validator flags the file.
 4. The file is saved without new object streams, so a PDF/A-1 file stays conformant. After writing, the program checks that the metadata stream has remained uncompressed and records the result in the log.
 
@@ -52,7 +52,7 @@ tdmrep [options] FILE.pdf [FILE.pdf ...]
 | `-o`, `--output PATH` | target PDF (for a single input file) or target directory |
 | `-i`, `--in-place` | overwrite the source file |
 | `-r`, `--reservation 0\|1` | value to set, default `1` |
-| `-p`, `--policy URL` | URL of the rights policy; `-p ""` omits it |
+| `-p`, `--policy URL` | URL of the rights policy, optional |
 | `--on-conflict report\|overwrite` | behaviour when entries already exist, default `report` |
 | `--no-pdfa-ext` | without the PDF/A Extension Schema Description |
 | `-n`, `--dry-run` | check only, write nothing |
@@ -66,16 +66,26 @@ Examples:
 
 ```
 $ tdmrep -p https://…/tdm.json -o diss_with-reservation.pdf diss.pdf
-$ tdmrep -i diss.pdf                        # policy from the default setting
+$ tdmrep -i diss.pdf                        # reservation without policy URL
 $ tdmrep -n diss.pdf                        # just see what would happen
 $ tdmrep -p https://…/tdm.json -o output/ input/*.pdf
 $ tdmrep -r 0 -i released.pdf               # explicit permission
 ```
 
-The policy URL defaults to
-`https://data.ub.uni-paderborn.de/policies/digital.ub/tdm.json`. Precedence: `-p` beats `TDMREP_POLICY`, and `TDMREP_POLICY` beats the default. `-p ""` writes the reservation without a reference to a policy. The default is defined as `DEFAULT_POLICY` at the top of `share/tdmrep/tdmrep.py` and must be changed there if the address ever changes — by then, however, it is already embedded in PDF files that have been delivered.
+### Policy URL
 
-**Environment variables:** `TDMREP_POLICY` overrides the default policy URL, `TDMREP_LOG` sets the log file, `TDMREP_PYTHON` selects a specific Python interpreter.
+The policy URL is optional; there is no default. `tdm:policy` is written only if a URL is given, either
+
+1. with `-p URL` on the command line, or
+2. in the environment variable `TDMREP_POLICY`, e.g. set once in `~/.zshrc`.
+
+`-p` beats `TDMREP_POLICY`, and `-p ""` ignores `TDMREP_POLICY` for a single call. A given policy URL is written with `-r 0` as well.
+
+Without a policy URL, a policy already present in the file is kept. With one, a different policy already present is a conflict (see below).
+
+Once PDF files carrying a policy URL have been delivered, the URL in them can no longer be changed, so that address should stay reachable.
+
+**Environment variables:** `TDMREP_POLICY` sets the policy URL, `TDMREP_LOG` sets the log file, `TDMREP_PYTHON` selects a specific Python interpreter.
 
 The older syntax `--in FILE` still works.
 
@@ -87,7 +97,7 @@ A conflict is any of the following:
 
 - the existing value differs from the requested one — even if it is a `0` that someone set deliberately to grant permission
 - the value lies outside the permitted range `0` and `1`
-- a different policy URL is already present, e.g. a publisher's
+- a policy URL is given and a different one is already present, e.g. a publisher's
 - the reservation uses the EPUB namespace notation `tdmrep#` and would have to be rewritten for PDF
 - the file contains several contradictory entries
 
@@ -142,4 +152,4 @@ tdmrep/
 └── README.md
 ```
 
-Version 2.1.0
+Version 1.0.0
