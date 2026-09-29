@@ -1,142 +1,144 @@
 # tdmrep
 
-Schreibt einen Rechtevorbehalt für Text and Data Mining in PDF-Dateien, von überall auf der Kommandozeile:
+Writes a text and data mining rights reservation into PDF files, from anywhere on the command line:
 
 ```
-$ tdmrep -p https://digital.ub.uni-paderborn.de/policies/tdm.json -i dissertation.pdf
+$ tdmrep -p https://example.org/policies/tdm.json -i dissertation.pdf
 {"tool":"tdmrep","version":"2.1.0","status":"written","sha256_before":"f5b51ea5…","sha256_after":"ec961f7f…", …}
 ```
 
-Der Vorbehalt landet in den XMP-Metadaten des Dokuments und begleitet die Datei damit auch dann, wenn sie heruntergeladen und andernorts weitergegeben wird. Seiten, Text, Schriften und Abbildungen bleiben unverändert.
+The reservation goes into the document's XMP metadata, so it stays with the file even after it has been downloaded and passed on elsewhere. Pages, text, fonts and images remain unchanged.
 
-`examples/beispiel.pdf` ist eine kleine Datei zum Ausprobieren.
+`examples/beispiel.pdf` is a small file to try it out on.
 
-## So funktioniert es
+## How it works
 
-1. Die Datei wird mit **pikepdf** (auf Basis von qpdf) geöffnet und ihr XMP-Paket gelesen.
-2. `tdm:reservation` und `tdm:policy` werden im Namensraum `http://www.w3.org/ns/tdmrep/` **ergänzt** — vorhandene Angaben wie `dc:creator`, `xmp:CreateDate` oder die PDF/A-Kennzeichnung bleiben erhalten.
-3. Weil `tdm` kein Standard-XMP-Schema ist, kommt eine **PDF/A Extension Schema Description** dazu. Ohne sie beanstandet ein PDF/A-Validator die Datei.
-4. Gespeichert wird ohne neue Objektströme, damit eine PDF/A-1-Datei konform bleibt. Nach dem Schreiben prüft das Programm, ob der Metadatenstrom unkomprimiert geblieben ist, und schreibt das Ergebnis ins Protokoll.
+1. The file is opened with **pikepdf** (based on qpdf) and its XMP packet is read.
+2. `tdm:reservation` and `tdm:policy` are **added** in the namespace `http://www.w3.org/ns/tdmrep/` — existing entries such as `dc:creator`, `xmp:CreateDate` or the PDF/A identification are preserved.
+3. Because `tdm` is not a standard XMP schema, a **PDF/A Extension Schema Description** is added as well. Without it, a PDF/A validator flags the file.
+4. The file is saved without new object streams, so a PDF/A-1 file stays conformant. After writing, the program checks that the metadata stream has remained uncompressed and records the result in the log.
 
-Grundlage ist das [TDM Reservation Protocol](https://www.w3.org/community/reports/tdmrep/CG-FINAL-tdmrep-20240510/) des W3C.
+It is based on the W3C [TDM Reservation Protocol](https://www.w3.org/community/reports/tdmrep/CG-FINAL-tdmrep-20240510/).
 
-## Voraussetzungen
+## Requirements
 
-- **Python** ab 3.9: `brew install python`
-- **pikepdf** und **lxml** — legt `install.sh` bei Bedarf in einer eigenen Umgebung neben dem Programm an, ohne das System-Python zu verändern
-- Bash, wie sie macOS mitbringt (auch unter Linux lauffähig)
+- **Python** 3.9 or later: `brew install python`
+- **pikepdf** and **lxml** — `install.sh` sets them up in a separate environment next to the program if needed, without touching the system Python
+- Bash, as shipped with macOS (also runs on Linux)
 
 ## Installation
 
-1. Den Ordner `tdmrep` an seinen festen Platz legen, etwa `~/Code/Tools/tdmrep`. Das Skript findet seine Dateien relativ zu sich selbst, auch über einen Link.
-2. Im Ordner aufrufen:
+1. Put the `tdmrep` folder in its permanent location, e.g. `~/Code/Tools/tdmrep`. The script finds its files relative to itself, even when called through a link.
+2. Run in the folder:
 
    ```
    $ ./install.sh
    ```
 
-   Das legt `~/.local/bin/tdmrep` als Link auf `bin/tdmrep` an, sorgt für die Python-Module, führt einen Selbsttest an der Beispieldatei aus und sagt, falls `~/.local/bin` noch nicht im PATH liegt, welche Zeile in `~/.zshrc` gehört. Ein anderes Zielverzeichnis: `./install.sh /usr/local/bin`. Sind pikepdf und lxml schon im System vorhanden, wird keine eigene Umgebung angelegt; `--no-venv` unterbindet sie ganz.
+   This creates `~/.local/bin/tdmrep` as a link to `bin/tdmrep`, takes care of the Python modules, runs a self-test on the example file and, if `~/.local/bin` is not yet on your PATH, tells you which line to add to `~/.zshrc`. For a different target directory: `./install.sh /usr/local/bin`. If pikepdf and lxml are already installed on the system, no separate environment is created; `--no-venv` prevents it altogether.
 
-**Deinstallieren:** `./install.sh --uninstall` entfernt den Link und die Umgebung; danach kann der Ordner gelöscht werden.
+**Uninstall:** `./install.sh --uninstall` removes the link and the environment; the folder can then be deleted.
 
-**Verschieben:** Ordner verschieben und `./install.sh` erneut aufrufen, der Link wird ersetzt.
+**Move:** move the folder and run `./install.sh` again; the link is replaced.
 
-## Aufruf
+## Usage
 
 ```
-tdmrep [Optionen] DATEI.pdf [DATEI.pdf ...]
+tdmrep [options] FILE.pdf [FILE.pdf ...]
 ```
 
-| Option | Wirkung |
+| Option | Effect |
 |---|---|
-| `-o`, `--output PFAD` | Ziel-PDF (bei einer Eingabedatei) oder Zielverzeichnis |
-| `-i`, `--in-place` | Quelldatei überschreiben |
-| `-r`, `--reservation 0\|1` | zu setzender Wert, Standard `1` |
-| `-p`, `--policy URL` | URL der Rechte-Policy; `-p ""` lässt sie weg |
-| `--on-conflict report\|overwrite` | Verhalten bei vorhandenen Angaben, Standard `report` |
-| `--no-pdfa-ext` | ohne PDF/A Extension Schema Description |
-| `-n`, `--dry-run` | nur prüfen, nichts schreiben |
-| `--log DATEI` | Protokollzeile zusätzlich an diese Datei anhängen |
-| `-q`, `--quiet` | nur Konflikte und Fehler ausgeben |
-| `-h`, `--help` / `-v`, `--version` | Hilfe / Version |
+| `-o`, `--output PATH` | target PDF (for a single input file) or target directory |
+| `-i`, `--in-place` | overwrite the source file |
+| `-r`, `--reservation 0\|1` | value to set, default `1` |
+| `-p`, `--policy URL` | URL of the rights policy; `-p ""` omits it |
+| `--on-conflict report\|overwrite` | behaviour when entries already exist, default `report` |
+| `--no-pdfa-ext` | without the PDF/A Extension Schema Description |
+| `-n`, `--dry-run` | check only, write nothing |
+| `--log FILE` | also append the log line to this file |
+| `-q`, `--quiet` | only print conflicts and errors |
+| `-h`, `--help` / `-v`, `--version` | help / version |
 
-Ohne `-o` oder `-i` schreibt das Programm nichts — das ist Absicht, damit eine Originaldatei nicht versehentlich überschrieben wird.
+Without `-o` or `-i` the program writes nothing — this is deliberate, so that an original file is not overwritten by accident.
 
-Beispiele:
+Examples:
 
 ```
-$ tdmrep -p https://…/tdm.json -o diss_mit-vorbehalt.pdf diss.pdf
-$ tdmrep -i diss.pdf                        # Policy aus der Voreinstellung
-$ tdmrep -n diss.pdf                        # nur ansehen, was geschähe
-$ tdmrep -p https://…/tdm.json -o ausgabe/ eingang/*.pdf
-$ tdmrep -r 0 -i freigegeben.pdf            # ausdrückliche Freigabe
+$ tdmrep -p https://…/tdm.json -o diss_with-reservation.pdf diss.pdf
+$ tdmrep -i diss.pdf                        # policy from the default setting
+$ tdmrep -n diss.pdf                        # just see what would happen
+$ tdmrep -p https://…/tdm.json -o output/ input/*.pdf
+$ tdmrep -r 0 -i released.pdf               # explicit permission
 ```
 
-Die Policy-URL ist voreingestellt auf
-`https://data.ub.uni-paderborn.de/policies/digital.ub/tdm.json`. Es gilt: `-p` schlägt `TDMREP_POLICY`, und `TDMREP_POLICY` schlägt die Voreinstellung. `-p ""` schreibt den Vorbehalt ohne Verweis auf eine Policy. Die Voreinstellung steht als `DEFAULT_POLICY` am Anfang von `share/tdmrep/tdmrep.py` und ist dort zu ändern, wenn sich die Adresse einmal ändert — sie steckt dann allerdings schon in ausgelieferten PDF-Dateien.
+The policy URL defaults to
+`https://data.ub.uni-paderborn.de/policies/digital.ub/tdm.json`. Precedence: `-p` beats `TDMREP_POLICY`, and `TDMREP_POLICY` beats the default. `-p ""` writes the reservation without a reference to a policy. The default is defined as `DEFAULT_POLICY` at the top of `share/tdmrep/tdmrep.py` and must be changed there if the address ever changes — by then, however, it is already embedded in PDF files that have been delivered.
 
-**Umgebungsvariablen:** `TDMREP_POLICY` überschreibt die voreingestellte Policy-URL, `TDMREP_LOG` setzt die Protokolldatei, `TDMREP_PYTHON` wählt einen bestimmten Python-Interpreter.
+**Environment variables:** `TDMREP_POLICY` overrides the default policy URL, `TDMREP_LOG` sets the log file, `TDMREP_PYTHON` selects a specific Python interpreter.
 
-Die ältere Schreibweise `--in DATEI` funktioniert weiterhin.
+The older syntax `--in FILE` still works.
 
-## Vorhandene Angaben werden gemeldet, nicht überschrieben
+## Existing entries are reported, not overwritten
 
-Enthält eine Datei bereits TDM-Angaben, ändert `tdmrep` nichts, sondern meldet den Sachverhalt und beendet sich mit Code 3. Ein bereits eingetragener Wert ist eine Willenserklärung der rechteinhabenden Person nach § 44b Abs. 3 UrhG; ihn stillschweigend zu ersetzen wiegt schwerer, als gar keinen zu setzen.
+If a file already contains TDM entries, `tdmrep` changes nothing; it reports the situation and exits with code 3. A value already entered is a declaration of intent by the rights holder under Section 44b(3) of the German Copyright Act (UrhG); silently replacing it is worse than setting none at all.
 
-Als Konflikt gilt:
+A conflict is any of the following:
 
-- der vorhandene Wert weicht von der Vorgabe ab — auch dann, wenn dort eine `0` steht, mit der jemand bewusst freigegeben hat
-- der Wert liegt außerhalb des zulässigen Bereichs `0` und `1`
-- es ist bereits eine abweichende Policy-URL eingetragen, etwa die eines Verlags
-- der Vorbehalt steht in der EPUB-Namensraum-Schreibweise `tdmrep#` und müsste für PDF umgeschrieben werden
-- die Datei enthält mehrere, einander widersprechende Angaben
+- the existing value differs from the requested one — even if it is a `0` that someone set deliberately to grant permission
+- the value lies outside the permitted range `0` and `1`
+- a different policy URL is already present, e.g. a publisher's
+- the reservation uses the EPUB namespace notation `tdmrep#` and would have to be rewritten for PDF
+- the file contains several contradictory entries
 
-Mit `--on-conflict overwrite` wird bewusst überschrieben; das Protokoll führt dann unter `conflicts_overridden` auf, was ersetzt wurde.
+`--on-conflict overwrite` overwrites deliberately; the log then lists what was replaced under `conflicts_overridden`.
 
-Übersprungen werden verschlüsselte, passwortgeschützte, signierte und zertifizierte Dateien: Jede Änderung würde eine Signatur brechen.
+Encrypted, password-protected, signed and certified files are skipped: any change would break a signature.
 
-## Protokoll und Exit-Codes
+## Log and exit codes
 
-Je Datei entsteht eine JSON-Zeile mit Zeitstempel, Prüfsummen vor und nach der Bearbeitung, erkannter PDF/A-Stufe und den vorgefundenen Angaben. Sie dient als Nachweis, ab wann der Vorbehalt in maschinenlesbarer Form vorlag — im Streitfall muss das die rechteinhabende Person belegen.
+Each file produces one JSON line with a timestamp, checksums before and after processing, the detected PDF/A level and the entries found. It serves as evidence of when the reservation was present in machine-readable form — in a dispute, the rights holder has to prove this.
 
-| Code | Bedeutung |
+| Code | Meaning |
 |---|---|
-| 0 | geschrieben oder bereits im Sollzustand (`written` / `unchanged`) |
-| 2 | übersprungen: verschlüsselt, passwortgeschützt, signiert oder zertifiziert |
-| 3 | Konflikt, es wurde nichts geschrieben |
-| 1 | Fehler, etwa nicht lesbares XMP oder fehlende Datei |
+| 0 | written or already in the desired state (`written` / `unchanged`) |
+| 2 | skipped: encrypted, password-protected, signed or certified |
+| 3 | conflict, nothing was written |
+| 1 | error, e.g. unreadable XMP or missing file |
 
-Bei mehreren Dateien gilt der höchste aufgetretene Code. Ein Stapellauf kann daran ohne Auswertung der Ausgabe erkennen, ob etwas liegengeblieben ist.
+With several files, the highest code encountered applies. A batch run can tell from it whether anything was left undone without parsing the output.
 
-Ein wiederholter Lauf über dieselbe Datei ändert weder Inhalt noch Prüfsumme und meldet `unchanged`.
+Running again on the same file changes neither content nor checksum and reports `unchanged`.
 
-## Hinweise
+## Notes
 
-- **Das Speichern schreibt die Dateistruktur neu.** Der Inhalt bleibt nachweislich identisch, die Bytes nicht — es entsteht eine neue Prüfsumme. Für Auslieferungskopien ist das unproblematisch, für Archivpakete mit hinterlegten Fixity-Werten nicht. Für Archivfassungen ist ein inkrementelles Update zu prüfen, bei dem die Originalbytes unverändert bleiben.
-- **Ein einmal ausgelieferter Vorbehalt ist nicht widerrufbar.** Für Kopien, die bereits heruntergeladen wurden, lässt er sich nicht mehr zurücknehmen. HTTP-Header und Angaben auf Webseiten sind dagegen jederzeit änderbar.
-- **PDF/A-Dateien** sollten nach der Bearbeitung mit veraPDF gegen dieselbe Konformitätsstufe geprüft werden; das Protokoll weist darauf hin, wenn die Quelle PDF/A war.
+- **Saving rewrites the file structure.** The content verifiably stays the same, the bytes do not — the file gets a new checksum. This is harmless for delivery copies, but not for archival packages with stored fixity values. For archival versions, consider an incremental update, which leaves the original bytes untouched.
+- **A reservation, once delivered, cannot be revoked.** It cannot be withdrawn from copies that have already been downloaded. HTTP headers and statements on web pages, by contrast, can be changed at any time.
+- **PDF/A files** should be validated with veraPDF against the same conformance level after processing; the log points this out when the source was PDF/A.
 
-## Fehlersuche
+## Troubleshooting
 
-| Meldung / Problem | Abhilfe |
+The program's own messages are in German; they are quoted verbatim below.
+
+| Message / problem | Remedy |
 |---|---|
-| „python3 nicht gefunden“ | `brew install python`, oder `TDMREP_PYTHON=/pfad/zu/python3` |
-| `ModuleNotFoundError: pikepdf` | `./install.sh` erneut aufrufen; legt die Umgebung an |
-| `"status":"conflict"` | Datei enthält bereits Angaben — prüfen, dann ggf. `--on-conflict overwrite` |
-| `"status":"skipped"` | Datei ist signiert, zertifiziert oder verschlüsselt; sie wird bewusst nicht verändert |
-| „weder --output noch --in-place angegeben“ | Ziel angeben, oder mit `-n` erst einmal nur prüfen |
-| `"metadata_filter"` ist nicht `None` | der Metadatenstrom wurde komprimiert; bei PDF/A ein Konformitätsproblem, bitte melden |
+| „python3 nicht gefunden“ (python3 not found) | `brew install python`, or `TDMREP_PYTHON=/path/to/python3` |
+| `ModuleNotFoundError: pikepdf` | run `./install.sh` again; it creates the environment |
+| `"status":"conflict"` | file already contains entries — check them, then use `--on-conflict overwrite` if appropriate |
+| `"status":"skipped"` | file is signed, certified or encrypted; it is deliberately left unchanged |
+| „weder --output noch --in-place angegeben“ (neither --output nor --in-place given) | specify a target, or check first with `-n` |
+| `"metadata_filter"` is not `None` | the metadata stream was compressed; a conformance problem for PDF/A, please report |
 
-## Dateien
+## Files
 
 ```
 tdmrep/
-├── bin/tdmrep                  Starter (Bash), wählt den Python-Interpreter
-├── share/tdmrep/tdmrep.py      das Programm
-├── share/tdmrep/venv/          Python-Umgebung, von install.sh angelegt
-├── examples/beispiel.pdf       kleine Datei zum Ausprobieren
+├── bin/tdmrep                  launcher (Bash), selects the Python interpreter
+├── share/tdmrep/tdmrep.py      the program
+├── share/tdmrep/venv/          Python environment, created by install.sh
+├── examples/beispiel.pdf       small file to try it out on
 ├── requirements.txt            pikepdf, lxml
-├── install.sh                  legt den Link im PATH an
+├── install.sh                  creates the link on the PATH
 └── README.md
 ```
 
