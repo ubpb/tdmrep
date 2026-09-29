@@ -1,0 +1,2 @@
+pikepdf>=8
+lxml>=4.9

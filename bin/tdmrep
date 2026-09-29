@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Startet tdmrep mit dem passenden Python. Findet die eigenen Dateien
+# relativ zu sich selbst, auch wenn der Aufruf über einen Link erfolgt.
+
+set -euo pipefail
+
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  case "$src" in /*) ;; *) src="$dir/$src" ;; esac
+done
+here="$(cd -P "$(dirname "$src")/.." && pwd)"
+
+prog="$here/share/tdmrep/tdmrep.py"
+if [ ! -f "$prog" ]; then
+  echo "tdmrep: $prog fehlt. Paket unvollständig?" >&2
+  exit 1
+fi
+
+if [ -n "${TDMREP_PYTHON:-}" ]; then
+  py="$TDMREP_PYTHON"
+elif [ -x "$here/share/tdmrep/venv/bin/python3" ]; then
+  py="$here/share/tdmrep/venv/bin/python3"
+else
+  py="$(command -v python3 || true)"
+fi
+
+if [ -z "$py" ]; then
+  echo "tdmrep: python3 nicht gefunden. ./install.sh ausführen oder TDMREP_PYTHON setzen." >&2
+  exit 1
+fi
+
+exec "$py" "$prog" "$@"
